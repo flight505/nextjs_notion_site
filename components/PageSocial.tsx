@@ -45,9 +45,9 @@ export const socialLinks: SocialLink[] = [
   },
 
   config.gitlab && {
-    name: 'github',
-    href: `https://github.com/${config.github}`,
-    title: `GitLab @${config.github}`,
+    name: 'gitlab', // Corrected from 'github' to 'gitlab'
+    href: `https://gitlab.com/${config.gitlab}`,
+    title: `GitLab @${config.gitlab}`,
     color: "#e24329",
     icon: FaGitlab
   },
