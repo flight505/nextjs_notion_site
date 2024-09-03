@@ -17,16 +17,16 @@ export default siteConfig({
   description: 'Vangs Vital Insights, by Jesper Vang',
 
   // social usernames (optional)
-  twitter: 'jespervang',
+  // twitter: 'jespervang',
   twitterX: 'jespervang',
   github: 'flight505',
-  gitlab: 'flight505',
+  // gitlab: 'flight505',
   linkedin: 'flight505',
   // mastodon: '#', // optional mastodon profile URL, provides link verification
-  newsletter: '#', // optional newsletter URL
+  // newsletter: '#', // optional newsletter URL
   youtube: '#', // optional youtube channel name or `channel/UCGbXXXXXXXXXXXXXXXXXXXXXX`
-  zhihu: '#', // optional zhihu username
-  bugtracker: '#', // optional bugtracker URL
+  // zhihu: '#', // optional zhihu username
+  // bugtracker: '#', // optional bugtracker URL
 
   // default notion icon and cover images for site-wide consistency (optional)
   // page-specific values will override these site-wide defaults
