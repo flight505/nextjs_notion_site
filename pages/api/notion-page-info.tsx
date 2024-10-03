@@ -59,7 +59,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
   const imageBlockUrl = mapImageUrl(
     getPageProperty<string>('Social Image', block, recordMap) ||
-      (block as PageBlock).format?.page_cover,
+    (block as PageBlock).format?.page_cover,
     block
   )
   const imageFallbackUrl = mapImageUrl(libConfig.defaultPageCover, block)
@@ -97,8 +97,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   const date =
     isBlogPost && datePublished
       ? `${datePublished.toLocaleString('en-US', {
-          month: 'long'
-        })} ${datePublished.getFullYear()}`
+        month: 'long'
+      })} ${datePublished.getFullYear()}`
       : undefined
   const detail = date || author || libConfig.domain
 
@@ -128,6 +128,7 @@ async function isUrlReachable(url: string | null): Promise<boolean> {
     await got.head(url)
     return true
   } catch (err) {
+    console.error(err); // Log the error
     return false
   }
 }

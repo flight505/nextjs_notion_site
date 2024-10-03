@@ -94,7 +94,7 @@ function generateCssFrag(prefix: string) {
   )).join('\n');
 }
 
-export const PageSocial: React.FC = (prefix: string) => {
+export const PageSocial: React.FC = () => {
   return (
     <>
       <style
