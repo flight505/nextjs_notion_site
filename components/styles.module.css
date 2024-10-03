@@ -103,16 +103,18 @@
     flex-direction: column;
   }
 
-  .footer > div {
+  .footer>div {
     margin-top: 1em;
   }
 
   .footer .settings {
     order: 1;
   }
+
   .footer .social {
     order: 2;
   }
+
   .footer .copyright {
     order: 3;
   }
@@ -131,7 +133,7 @@
   display: inline-flex;
   padding: 12px;
   margin-right: 1vw;
-  border-radius: 50%;
+  /* border-radius: 50%; */
   background: transparent;
   transition: all 250ms ease-out;
 }
@@ -165,14 +167,17 @@
 }
 
 @keyframes octocat-wave {
+
   0%,
   100% {
     transform: rotate(0);
   }
+
   20%,
   60% {
     transform: rotate(-25deg);
   }
+
   40%,
   80% {
     transform: rotate(10deg);
