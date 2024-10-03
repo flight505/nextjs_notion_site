@@ -30,9 +30,9 @@ export default siteConfig({
 
   // default notion icon and cover images for site-wide consistency (optional)
   // page-specific values will override these site-wide defaults
-  defaultPageIcon: null,
-  defaultPageCover: null,
-  defaultPageCoverPosition: 0.5,
+  defaultPageIcon: '👍',
+  defaultPageCover: 'public/0KstZ3IeQqSiHEeWTlhZ8w.png',
+  defaultPageCoverPosition: 0.1,
 
   // whether or not to enable support for LQIP preview images (optional)
   isPreviewImageSupportEnabled: true,
