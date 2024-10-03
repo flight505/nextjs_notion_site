@@ -9,8 +9,6 @@ import { FaGithub, FaLinkedin, FaTwitter, FaYoutube } from 'react-icons/fa'
 import { FaXTwitter, FaGitlab, FaEnvelopeOpenText } from 'react-icons/fa6'
 import { IoIosBug } from 'react-icons/io'
 
-
-
 interface SocialLink {
   name: string;
   title: string;
@@ -104,22 +102,20 @@ export const PageSocial: React.FC = (prefix: string) => {
       />
       <div className={styles.pageSocial}>
         {socialLinks.map((action) => (
-          <>
-            <a
-              className={cs(styles.action, styles[action.name], `social-link-side-${action.name}`)}
-              href={action.href}
-              key={action.name}
-              title={action.title}
-              target='_blank'
-              rel='noopener noreferrer'
-            >
-              <div className={styles.actionBg}>
-                <div className={styles.actionBgPane} />
-              </div>
+          <a
+            className={cs(styles.action, styles[action.name], `social-link-side-${action.name}`)}
+            href={action.href}
+            key={action.name}
+            title={action.title}
+            target='_blank'
+            rel='noopener noreferrer'
+          >
+            <div className={styles.actionBg}>
+              <div className={styles.actionBgPane} />
+            </div>
 
-              <div className={styles.actionBg}>{action.icon({ size: 24 })}</div>
-            </a>
-          </>
+            <div className={styles.actionBg}>{action.icon({ size: 24 })}</div>
+          </a>
         ))}
       </div>
     </>

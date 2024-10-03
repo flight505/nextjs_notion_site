@@ -57,6 +57,7 @@ export const FooterImpl: React.FC = () => {
       <div className={styles.social}>
         {socialLinks.map((action) => (
           <a
+            key={action.name} // Added key prop here
             className={cs(styles[action.name], `social-link-footer-${action.name}`)}
             href={action.href}
             title={action.title}
@@ -66,7 +67,6 @@ export const FooterImpl: React.FC = () => {
             {action.icon({ size: 16 })}
           </a>
         ))}
-
       </div>
     </footer>
   )
