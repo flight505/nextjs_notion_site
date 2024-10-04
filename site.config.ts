@@ -6,7 +6,7 @@ export default siteConfig({
 
   // if you want to restrict pages to a single notion workspace (optional)
   // (this should be a Notion ID; see the docs for how to extract this)
-  rootNotionSpaceId: null,
+  rootNotionSpaceId: 'fb24ea26d77148ce895c85023770a4a4',
 
   // basic site info (required)
   name: 'Vangs Vital Insights',
@@ -30,8 +30,8 @@ export default siteConfig({
 
   // default notion icon and cover images for site-wide consistency (optional)
   // page-specific values will override these site-wide defaults
-  defaultPageIcon: '👍',
-  defaultPageCover: 'public/0KstZ3IeQqSiHEeWTlhZ8w.png',
+  defaultPageIcon: null,
+  defaultPageCover: null,
   defaultPageCoverPosition: 0.1,
 
   // whether or not to enable support for LQIP preview images (optional)
@@ -61,20 +61,16 @@ export default siteConfig({
 
   // whether to use the default notion navigation style or a custom one with links to
   // important pages. To use `navigationLinks`, set `navigationStyle` to `custom`.
-  navigationStyle: 'default'
-  // navigationStyle: 'custom',
-  // navigationLinks: [
-  //   // {
-  //   //   title: 'Home',
-  //   //   pageId: '/'
-  //   // },
-  //   {
-  //     title: 'About',
-  //     pageId: '/About-fb8f3ab93fd34f189a0dcb55dbf1c552'
-  //   },
-  //   {
-  //     title: 'Contact',
-  //     pageId: '/Contact-0020eda50345447f94bd71f9ee10d0e3'
-  //   }
-  // ]
+  // navigationStyle: 'default'
+  navigationStyle: 'custom',
+  navigationLinks: [
+    {
+      title: 'About',
+      pageId: 'fb8f3ab93fd34f189a0dcb55dbf1c552'
+    },
+    {
+      title: 'Contact',
+      pageId: '0020eda50345447f94bd71f9ee10d0e3'
+    }
+  ]
 })

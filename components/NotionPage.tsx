@@ -6,7 +6,7 @@ import { useRouter } from 'next/router'
 
 import cs from 'classnames'
 import { PageBlock } from 'notion-types'
-import { formatDate, getBlockTitle, getPageProperty } from 'notion-utils'
+import { formatDate, getBlockTitle, getPageProperty, parsePageId } from 'notion-utils'
 import BodyClassName from 'react-body-classname'
 import { NotionRenderer } from 'react-notion-x'
 import TweetEmbed from 'react-tweet-embed'
@@ -114,6 +114,11 @@ const propertyLastEditedTimeValue = (
   return defaultFn()
 }
 
+const HeroHeader = dynamic<{ className?: string }>(
+  () => import('./HeroHeader').then((m) => m.HeroHeader),
+  { ssr: false }
+)
+
 const propertyDateValue = (
   { data, schema, pageHeader },
   defaultFn: () => React.ReactNode
@@ -189,6 +194,8 @@ export const NotionPage: React.FC<types.PageProps> = ({
   //   parsePageId(block?.id) === parsePageId(site?.rootNotionPageId)
   const isBlogPost =
     block?.type === 'page' && block?.parent_table === 'collection'
+  const isBioPage =
+    parsePageId(block?.id) === parsePageId('fb8f3ab93fd34f189a0dcb55dbf1c552')
 
   const showTableOfContents = !!isBlogPost
   const minTableOfContentsItems = 3
@@ -201,6 +208,17 @@ export const NotionPage: React.FC<types.PageProps> = ({
   )
 
   const footer = React.useMemo(() => <Footer />, [])
+
+  const pageCover = React.useMemo(() => {
+    if (isBioPage) {
+      console.log('Rendering HeroHeader');
+      return (
+        <HeroHeader className='notion-page-cover-wrapper notion-page-cover-hero' />
+      )
+    } else {
+      return null
+    }
+  }, [isBioPage])
 
   if (router.isFallback) {
     return <Loading />
@@ -280,6 +298,7 @@ export const NotionPage: React.FC<types.PageProps> = ({
           searchNotion={config.isSearchEnabled ? searchNotion : null}
           pageAside={pageAside}
           footer={footer}
+          pageCover={pageCover}
         />
 
         {config.isGithubShareButtonEnabled && <GitHubShareButton />}
