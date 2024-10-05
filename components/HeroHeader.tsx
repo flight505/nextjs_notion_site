@@ -5,7 +5,7 @@ const vertexShader = `
   varying vec2 vUv;
   void main() {
     vUv = uv;
-    gl_Position = vec4(position, 1.0);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
 
@@ -42,7 +42,7 @@ const fragmentShader = `
 
     float t = 0.001 * u_time;
     
-    vec2 mouse = u_mouse / u_resolution;
+    vec2 mouse = u_mouse;
     float distToMouse = length(vUv - mouse);
     float p = 0.5 + 0.5 * (1.0 - smoothstep(0.0, 0.5, distToMouse));
 
@@ -69,7 +69,8 @@ const HeroHeader: React.FC = () => {
         if (!canvasRef.current) return;
 
         const scene = new THREE.Scene();
-        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -1, 1);
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000);
+        camera.position.z = 1;
         const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, alpha: true });
 
         // Create a texture with the text
@@ -89,6 +90,8 @@ const HeroHeader: React.FC = () => {
         };
         updateTextTexture();
         const textTexture = new THREE.CanvasTexture(textCanvas);
+        textTexture.minFilter = THREE.LinearFilter;
+        textTexture.magFilter = THREE.LinearFilter;
 
         const geometry = new THREE.PlaneGeometry(2, 2);
         const material = new THREE.ShaderMaterial({
