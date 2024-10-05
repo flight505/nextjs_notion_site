@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useEffect } from 'react'  // Add this import
 import dynamic from 'next/dynamic'
 import Image from "next/legacy/image"
 import Link from 'next/link'
@@ -179,6 +180,14 @@ export const NotionPage: React.FC<types.PageProps> = ({
 
   const { isDarkMode, toggleDarkMode } = useDarkMode()
 
+  useEffect(() => {
+    if (isDarkMode) {
+      document.body.classList.add('dark-mode')
+    } else {
+      document.body.classList.remove('dark-mode')
+    }
+  }, [isDarkMode])
+
   const siteMapPageUrl = React.useMemo(() => {
     const params: any = {}
     if (lite) params.lite = lite
@@ -273,7 +282,7 @@ export const NotionPage: React.FC<types.PageProps> = ({
         />
 
         {isLiteMode && <BodyClassName className='notion-lite' />}
-        {isDarkMode && <BodyClassName className='dark-mode' />}
+        {/* Remove this line: {isDarkMode && <BodyClassName className='dark-mode' />} */}
 
         <NotionRenderer
           bodyClassName={cs(

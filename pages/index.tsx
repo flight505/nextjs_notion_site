@@ -1,4 +1,5 @@
 import * as React from 'react'
+import Head from 'next/head'
 
 import { NotionPage } from '@/components/NotionPage'
 import { domain } from '@/lib/config'
@@ -19,5 +20,25 @@ export const getStaticProps = async () => {
 }
 
 export default function NotionDomainPage(props) {
-  return <NotionPage {...props} />
+  return (
+    <>
+      <Head>
+        {/* ... other meta tags */}
+
+        {/* Remove or comment out this line */}
+        {/* <meta name="apple-mobile-web-app-capable" content="yes" /> */}
+
+        {/* Add this line instead */}
+        <meta name="mobile-web-app-capable" content="yes" />
+
+        {/* If you still want to support older iOS devices, you can keep both */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+
+        {/* ... other head content */}
+      </Head>
+
+      <NotionPage {...props} />
+    </>
+  )
 }
