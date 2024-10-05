@@ -1,125 +1,154 @@
-import React, { Component } from 'react'
+import React, { useRef, useEffect, useState } from 'react';
+import * as THREE from 'three';
 
-import raf from 'raf'
-import random from 'random'
-import FluidAnimation from 'react-fluid-animation'
+const vertexShader = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = vec4(position, 1.0);
+  }
+`;
 
-const exp = random.exponential()
-const numSplatsPerEpoch = 1
-const minSplatRadius = 0.01
-const maxSplatRadius = 0.03
+const fragmentShader = `
+  uniform float u_time;
+  uniform vec2 u_resolution;
+  uniform vec2 u_mouse;
+  uniform sampler2D u_texture;
+  varying vec2 vUv;
 
-export class HeroHeader extends Component<{
-    className?: string
-}> {
-    _time: number = Date.now()
-    _direction: number
-    _tickRaf: any
-    _timeout: any
-    _animation: any
+  vec2 rotate(vec2 uv, float th) {
+    return mat2(cos(th), sin(th), -sin(th), cos(th)) * uv;
+  }
 
-    componentDidMount() {
-        this._time = Date.now()
-        this._direction = 1
-        this._reset()
-        this._tick()
+  float neuro_shape(vec2 uv, float t, float p) {
+    vec2 sine_acc = vec2(0.);
+    vec2 res = vec2(0.);
+    float scale = 8.;
+
+    for (int j = 0; j < 15; j++) {
+      uv = rotate(uv, 1.);
+      sine_acc = rotate(sine_acc, 1.);
+      vec2 layer = uv * scale + float(j) + sine_acc - t;
+      sine_acc += sin(layer);
+      res += (.5 + .5 * cos(layer)) / scale;
+      scale *= (1.2 - .07 * p);
     }
+    return res.x + res.y;
+  }
 
-    componentWillUnmount() {
-        if (this._tickRaf) {
-            raf.cancel(this._tickRaf)
-            this._tickRaf = null
-        }
+  void main() {
+    vec2 uv = vUv - 0.5;
+    uv.x *= u_resolution.x / u_resolution.y;
 
-        if (this._timeout) {
-            clearTimeout(this._timeout)
-            this._timeout = null
-        }
-    }
+    float t = 0.001 * u_time;
+    
+    vec2 mouse = u_mouse / u_resolution;
+    float distToMouse = length(vUv - mouse);
+    float p = 0.5 + 0.5 * (1.0 - smoothstep(0.0, 0.5, distToMouse));
 
-    render() {
-        return (
-            <FluidAnimation
-                className={this.props.className}
-                animationRef={this._animationRef}
-            />
-        )
-    }
+    float noise = neuro_shape(uv, t, p);
 
-    _animationRef = (ref) => {
-        this._animation = ref
-        this._reset()
-    }
+    noise = 1.2 * pow(noise, 3.);
+    noise += pow(noise, 10.);
+    noise = max(0.0, noise - 0.5);
+    noise *= (1.0 - length(vUv - 0.5));
 
-    _reset() {
-        if (this._animation) {
-            this._animation.config.splatRadius = random.float(
-                minSplatRadius,
-                maxSplatRadius
-            )
-            this._animation.addRandomSplats(random.int(100, 180))
-        }
-    }
+    vec3 color = normalize(vec3(0.2, 0.5 + 0.4 * cos(3.0 * t), 0.5 + 0.5 * sin(3.0 * t)));
+    color = color * noise;
 
-    _tick = () => {
-        this._tickRaf = null
-        this._timeout = null
+    vec4 textColor = texture2D(u_texture, vUv);
+    gl_FragColor = vec4(mix(textColor.rgb, color, noise), 1.0);
+  }
+`;
 
-        let scale = 1.0
+const HeroHeader: React.FC = () => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [mousePosition, setMousePosition] = useState<THREE.Vector2>(new THREE.Vector2(0.5, 0.5));
 
-        if (this._animation) {
-            const w = this._animation.width
-            const h = this._animation.height
+    useEffect(() => {
+        if (!canvasRef.current) return;
 
-            // adjust the intensity scale depending on the canvas width, so it's less
-            // intense on smaller screens
-            const s = Math.max(0.1, Math.min(1, w / 1200))
-            scale = Math.pow(s, 1.2)
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -1, 1);
+        const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, alpha: true });
 
-            this._animation.config.splatRadius = random.float(
-                minSplatRadius * scale,
-                maxSplatRadius * scale
-            )
+        // Create a texture with the text
+        const textCanvas = document.createElement('canvas');
+        const textCtx = textCanvas.getContext('2d')!;
+        const updateTextTexture = () => {
+            const { width, height } = canvasRef.current!.getBoundingClientRect();
+            textCanvas.width = width;
+            textCanvas.height = height;
+            textCtx.fillStyle = '#151912';
+            textCtx.fillRect(0, 0, width, height);
+            textCtx.fillStyle = 'white';
+            textCtx.font = `bold ${height / 10}px serif`;
+            textCtx.textAlign = 'center';
+            textCtx.textBaseline = 'middle';
+            textCtx.fillText("Vang's Vital Insights", width / 2, height / 2);
+        };
+        updateTextTexture();
+        const textTexture = new THREE.CanvasTexture(textCanvas);
 
-            const splats = []
-            for (let i = 0; i < numSplatsPerEpoch; ++i) {
-                const color = [random.float(10), random.float(10), random.float(10)]
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const material = new THREE.ShaderMaterial({
+            vertexShader,
+            fragmentShader,
+            uniforms: {
+                u_time: { value: 0 },
+                u_resolution: { value: new THREE.Vector2() },
+                u_mouse: { value: new THREE.Vector2(0.5, 0.5) },
+                u_texture: { value: textTexture },
+            },
+        });
 
-                const w0 = w / 3.0
-                const w1 = (w * 2.0) / 3.0
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
 
-                const h0 = h / 3.0
-                const h1 = (h * 2.0) / 3.0
+        const resizeCanvas = () => {
+            const { clientWidth, clientHeight } = canvasRef.current!;
+            renderer.setSize(clientWidth, clientHeight, false);
+            material.uniforms.u_resolution.value.set(clientWidth, clientHeight);
+            updateTextTexture();
+            textTexture.needsUpdate = true;
+        };
 
-                // eslint-disable-next-line no-constant-condition
-                while (true) {
-                    const x = random.float(w)
-                    const y = random.float(h)
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
 
-                    // favor uniformly distributed samples within the center-ish of the canvas
-                    if (x > w0 && x < w1 && y > h0 && y < h1) {
-                        continue
-                    }
+        const handleMouseMove = (event: MouseEvent) => {
+            const rect = canvasRef.current!.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            setMousePosition(new THREE.Vector2(
+                x / rect.width,
+                1 - y / rect.height // Invert Y-axis
+            ));
+        };
 
-                    const dx = random.float(-1, 1) * random.float(200, 3000) * scale
-                    const dy = random.float(-1, 1) * random.float(200, 3000) * scale
-                    const splat = { x, y, dx, dy, color }
-                    splats.push(splat)
-                    break
-                }
+        canvasRef.current.addEventListener('mousemove', handleMouseMove);
 
-            }
+        const animate = (time: number) => {
+            material.uniforms.u_time.value = time;
+            material.uniforms.u_mouse.value.copy(mousePosition);
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        };
 
-            this._animation.addSplats(splats)
-        }
+        requestAnimationFrame(animate);
 
-        // using an exponential distribution here allows us to favor bursts of activity
-        // but also allow for more occasional pauses
-        const dampenedScale = Math.pow(scale, 0.2)
-        const timeout = (exp() * 100) / dampenedScale
+        return () => {
+            window.removeEventListener('resize', resizeCanvas);
+            canvasRef.current?.removeEventListener('mousemove', handleMouseMove);
+            renderer.dispose();
+        };
+    }, [mousePosition]);
 
-        this._timeout = setTimeout(() => {
-            this._tickRaf = raf(this._tick)
-        }, timeout)
-    }
-}
+    return (
+        <div className="w-full h-screen bg-[#151912]">
+            <canvas ref={canvasRef} className="w-full h-full" />
+        </div>
+    );
+};
+
+export default HeroHeader;

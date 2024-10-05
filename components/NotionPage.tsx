@@ -115,7 +115,7 @@ const propertyLastEditedTimeValue = (
 }
 
 const HeroHeader = dynamic<{ className?: string }>(
-  () => import('./HeroHeader').then((m) => m.HeroHeader),
+  () => import('./HeroHeader').then((m) => m.default),
   { ssr: false }
 )
 
