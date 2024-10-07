@@ -115,10 +115,7 @@ const propertyLastEditedTimeValue = (
   return defaultFn()
 }
 
-const HeroHeader = dynamic<{ className?: string }>(
-  () => import('./HeroHeader').then((m) => m.default),
-  { ssr: false }
-)
+const HeroHeader = dynamic(() => import('./HeroHeader'), { ssr: false })
 
 const propertyDateValue = (
   { data, schema, pageHeader },
@@ -147,6 +144,8 @@ const propertyTextValue = (
 
   return defaultFn()
 }
+
+import ErrorBoundary from './ErrorBoundary';
 
 export const NotionPage: React.FC<types.PageProps> = ({
   site,
@@ -188,6 +187,18 @@ export const NotionPage: React.FC<types.PageProps> = ({
     }
   }, [isDarkMode])
 
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled promise rejection:', event.reason);
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
   const siteMapPageUrl = React.useMemo(() => {
     const params: any = {}
     if (lite) params.lite = lite
@@ -219,15 +230,40 @@ export const NotionPage: React.FC<types.PageProps> = ({
   const footer = React.useMemo(() => <Footer />, [])
 
   const pageCover = React.useMemo(() => {
-    if (isBioPage) {
-      console.log('Rendering HeroHeader');
-      return (
-        <HeroHeader className='notion-page-cover-wrapper notion-page-cover-hero' />
+    if (block && site) {
+      const coverPosition = (block as PageBlock).format?.page_cover_position ?? config.defaultPageCoverPosition
+      const coverImageUrl = mapImageUrl(
+        (block as PageBlock).format?.page_cover || config.defaultPageCover,
+        block
       )
-    } else {
-      return null
+
+      return (
+        <div className='notion-page-cover-wrapper'>
+          <div className='notion-page-cover' style={{
+            position: 'relative',
+            width: '100%',
+            height: '30vh',
+            minHeight: 180,
+            maxHeight: 500,
+            overflow: 'hidden'
+          }}>
+            {isBioPage ? (
+              <HeroHeader />
+            ) : coverImageUrl ? (
+              <Image
+                src={coverImageUrl}
+                alt={getBlockTitle(block, recordMap) || site.name || ''}
+                layout='fill'
+                objectFit='cover'
+                objectPosition={`center ${coverPosition * 100}%`}
+              />
+            ) : null}
+          </div>
+        </div>
+      )
     }
-  }, [isBioPage])
+    return null
+  }, [block, recordMap, site, isBioPage])
 
   if (router.isFallback) {
     return <Loading />
@@ -237,7 +273,7 @@ export const NotionPage: React.FC<types.PageProps> = ({
     return <Page404 site={site} pageId={pageId} error={error} />
   }
 
-  const title = getBlockTitle(block, recordMap) || site.name
+  const title = getBlockTitle(block, recordMap) || (site?.name ?? '')
 
   console.log('notion page', {
     isDev: config.isDev,
@@ -270,7 +306,7 @@ export const NotionPage: React.FC<types.PageProps> = ({
     config.description
 
   return (
-    <>
+    <ErrorBoundary>
       <DarkModeContext.Provider value={{ isDarkMode, toggleDarkMode }}>
         <PageHead
           pageId={pageId}
@@ -312,6 +348,6 @@ export const NotionPage: React.FC<types.PageProps> = ({
 
         {config.isGithubShareButtonEnabled && <GitHubShareButton />}
       </DarkModeContext.Provider>
-    </>
+    </ErrorBoundary>
   )
 }

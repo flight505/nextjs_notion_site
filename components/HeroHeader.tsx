@@ -1,19 +1,21 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useContext } from 'react';
 import * as THREE from 'three';
+import styles from './HeroHeader.module.css';
+import { DarkModeContext } from '@/lib/use-dark-mode';
 
 const vertexShader = `
   varying vec2 vUv;
   void main() {
     vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    gl_Position = vec4(position, 1.0);
   }
 `;
 
 const fragmentShader = `
   uniform float u_time;
   uniform vec2 u_resolution;
-  uniform vec2 u_mouse;
-  uniform sampler2D u_texture;
+  uniform vec2 u_pointer_position;
+  uniform float u_scroll_progress;
   varying vec2 vUv;
 
   vec2 rotate(vec2 uv, float th) {
@@ -37,13 +39,24 @@ const fragmentShader = `
   }
 
   void main() {
-    vec2 uv = vUv - 0.5;
-    uv.x *= u_resolution.x / u_resolution.y;
+    vec2 uv = vUv;
+    float aspect = u_resolution.x / u_resolution.y;
+    uv.x *= aspect;
+
+    // Zoom factor (adjust this value to control the zoom level)
+    float zoom = 0.5;
+    
+    // Center the UV coordinates
+    uv = (uv - 0.5) * zoom + 0.5;
 
     float t = 0.001 * u_time;
     
-    vec2 mouse = u_mouse;
-    float distToMouse = length(vUv - mouse);
+    vec2 mouse = u_pointer_position;
+    mouse.x *= aspect;
+    // Adjust mouse position for zoom
+    mouse = (mouse - 0.5) * zoom + 0.5;
+    
+    float distToMouse = length(uv - mouse);
     float p = 0.5 + 0.5 * (1.0 - smoothstep(0.0, 0.5, distToMouse));
 
     float noise = neuro_shape(uv, t, p);
@@ -56,102 +69,126 @@ const fragmentShader = `
     vec3 color = normalize(vec3(0.2, 0.5 + 0.4 * cos(3.0 * t), 0.5 + 0.5 * sin(3.0 * t)));
     color = color * noise;
 
-    vec4 textColor = texture2D(u_texture, vUv);
-    gl_FragColor = vec4(mix(textColor.rgb, color, noise), 1.0);
+    gl_FragColor = vec4(color, 1.0);
   }
 `;
 
-const HeroHeader: React.FC = () => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [mousePosition, setMousePosition] = useState<THREE.Vector2>(new THREE.Vector2(0.5, 0.5));
+const HeroHeader: React.FC<{ className?: string }> = ({ className }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { isDarkMode } = useContext(DarkModeContext) || { isDarkMode: false };
+  const [mousePosition, setMousePosition] = useState<THREE.Vector2>(new THREE.Vector2(0.5, 0.5));
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
+  const materialRef = useRef<THREE.ShaderMaterial | null>(null);
 
-    useEffect(() => {
-        if (!canvasRef.current) return;
+  useEffect(() => {
+    if (!containerRef.current || !canvasRef.current) {
+      console.warn('Container or canvas ref is null');
+      return;
+    }
 
-        const scene = new THREE.Scene();
-        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000);
-        camera.position.z = 1;
-        const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, alpha: true });
+    let animationFrameId: number;
 
-        // Create a texture with the text
-        const textCanvas = document.createElement('canvas');
-        const textCtx = textCanvas.getContext('2d')!;
-        const updateTextTexture = () => {
-            const { width, height } = canvasRef.current!.getBoundingClientRect();
-            textCanvas.width = width;
-            textCanvas.height = height;
-            textCtx.fillStyle = '#151912';
-            textCtx.fillRect(0, 0, width, height);
-            textCtx.fillStyle = 'white';
-            textCtx.font = `bold ${height / 10}px serif`;
-            textCtx.textAlign = 'center';
-            textCtx.textBaseline = 'middle';
-            textCtx.fillText("Vang's Vital Insights", width / 2, height / 2);
-        };
-        updateTextTexture();
-        const textTexture = new THREE.CanvasTexture(textCanvas);
-        textTexture.minFilter = THREE.LinearFilter;
-        textTexture.magFilter = THREE.LinearFilter;
+    try {
+      const scene = new THREE.Scene();
+      sceneRef.current = scene;
 
-        const geometry = new THREE.PlaneGeometry(2, 2);
-        const material = new THREE.ShaderMaterial({
-            vertexShader,
-            fragmentShader,
-            uniforms: {
-                u_time: { value: 0 },
-                u_resolution: { value: new THREE.Vector2() },
-                u_mouse: { value: new THREE.Vector2(0.5, 0.5) },
-                u_texture: { value: textTexture },
-            },
-        });
+      const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+      cameraRef.current = camera;
 
-        const mesh = new THREE.Mesh(geometry, material);
-        scene.add(mesh);
+      const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, alpha: true });
+      rendererRef.current = renderer;
 
-        const resizeCanvas = () => {
-            const { clientWidth, clientHeight } = canvasRef.current!;
-            renderer.setSize(clientWidth, clientHeight, false);
-            material.uniforms.u_resolution.value.set(clientWidth, clientHeight);
-            updateTextTexture();
-            textTexture.needsUpdate = true;
-        };
+      const geometry = new THREE.PlaneGeometry(2, 2);
+      const material = new THREE.ShaderMaterial({
+        vertexShader,
+        fragmentShader,
+        uniforms: {
+          u_time: { value: 0 },
+          u_resolution: { value: new THREE.Vector2() },
+          u_pointer_position: { value: new THREE.Vector2(0.5, 0.5) },
+          u_scroll_progress: { value: 0 },
+        },
+      });
+      materialRef.current = material;
 
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+      const mesh = new THREE.Mesh(geometry, material);
+      scene.add(mesh);
 
-        const handleMouseMove = (event: MouseEvent) => {
-            const rect = canvasRef.current!.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-            setMousePosition(new THREE.Vector2(
-                x / rect.width,
-                1 - y / rect.height // Invert Y-axis
-            ));
-        };
+      const resizeCanvas = () => {
+        if (!containerRef.current || !renderer || !material) return;
+        const { clientWidth, clientHeight } = containerRef.current;
+        const devicePixelRatio = Math.min(window.devicePixelRatio, 2);
 
-        canvasRef.current.addEventListener('mousemove', handleMouseMove);
+        renderer.setSize(clientWidth, clientHeight);
+        renderer.setPixelRatio(devicePixelRatio);
 
-        const animate = (time: number) => {
-            material.uniforms.u_time.value = time;
-            material.uniforms.u_mouse.value.copy(mousePosition);
-            renderer.render(scene, camera);
-            requestAnimationFrame(animate);
-        };
+        material.uniforms.u_resolution.value.set(clientWidth * devicePixelRatio, clientHeight * devicePixelRatio);
+      };
 
-        requestAnimationFrame(animate);
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
 
-        return () => {
-            window.removeEventListener('resize', resizeCanvas);
-            canvasRef.current?.removeEventListener('mousemove', handleMouseMove);
-            renderer.dispose();
-        };
-    }, [mousePosition]);
+      const handleMouseMove = (event: MouseEvent) => {
+        if (!containerRef.current) return;
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        setMousePosition(new THREE.Vector2(
+          x / rect.width,
+          1 - y / rect.height // Invert Y-axis
+        ));
+      };
 
-    return (
-        <div className="w-full h-screen bg-[#151912]">
-            <canvas ref={canvasRef} className="w-full h-full" />
-        </div>
-    );
+      const handleScroll = () => {
+        if (material) {
+          material.uniforms.u_scroll_progress.value = window.pageYOffset / (2 * window.innerHeight);
+        }
+      };
+
+      containerRef.current.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('scroll', handleScroll);
+
+      const animate = (time: number) => {
+        if (!material || !renderer || !scene || !camera) {
+          console.warn('Missing required objects for animation');
+          return;
+        }
+        try {
+          material.uniforms.u_time.value = time;
+          material.uniforms.u_pointer_position.value.copy(mousePosition);
+          renderer.render(scene, camera);
+          animationFrameId = requestAnimationFrame(animate);
+        } catch (error) {
+          console.error('Error in animation loop:', error);
+        }
+      };
+
+      animationFrameId = requestAnimationFrame(animate);
+
+      return () => {
+        window.removeEventListener('resize', resizeCanvas);
+        containerRef.current?.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('scroll', handleScroll);
+        cancelAnimationFrame(animationFrameId);
+        renderer.dispose();
+      };
+    } catch (error) {
+      console.error('Error in HeroHeader setup:', error);
+    }
+  }, [mousePosition, isDarkMode]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`${styles.heroHeader} ${isDarkMode ? styles.heroHeaderDark : styles.heroHeaderLight
+        } ${className || ''}`}
+    >
+      <canvas ref={canvasRef} className={styles.heroCanvas} />
+    </div>
+  );
 };
 
 export default HeroHeader;
