@@ -4,6 +4,7 @@ import styles from './HeroHeader.module.css';
 import { DarkModeContext } from '@/lib/use-dark-mode';
 
 const vertexShader = `
+  precision mediump float;
   varying vec2 vUv;
   void main() {
     vUv = uv;
@@ -12,10 +13,10 @@ const vertexShader = `
 `;
 
 const fragmentShader = `
+  precision mediump float;
   uniform float u_time;
   uniform vec2 u_resolution;
   uniform vec2 u_pointer_position;
-  uniform float u_scroll_progress;
   varying vec2 vUv;
 
   vec2 rotate(vec2 uv, float th) {
@@ -39,22 +40,14 @@ const fragmentShader = `
   }
 
   void main() {
-    vec2 uv = vUv;
+    vec2 uv = 0.5 * vUv; // Directly scale UV coordinates
     float aspect = u_resolution.x / u_resolution.y;
     uv.x *= aspect;
 
-    // Zoom factor (adjust this value to control the zoom level)
-    float zoom = 0.5;
-    
-    // Center the UV coordinates
-    uv = (uv - 0.5) * zoom + 0.5;
-
     float t = 0.001 * u_time;
     
-    vec2 mouse = u_pointer_position;
+    vec2 mouse = 0.5 * u_pointer_position; // Scale mouse position to match UV scaling
     mouse.x *= aspect;
-    // Adjust mouse position for zoom
-    mouse = (mouse - 0.5) * zoom + 0.5;
     
     float distToMouse = length(uv - mouse);
     float p = 0.5 + 0.5 * (1.0 - smoothstep(0.0, 0.5, distToMouse));
@@ -67,9 +60,9 @@ const fragmentShader = `
     noise *= (1.0 - length(vUv - 0.5));
 
     vec3 color = normalize(vec3(0.2, 0.5 + 0.4 * cos(3.0 * t), 0.5 + 0.5 * sin(3.0 * t)));
-    color = color * noise;
+    color *= noise;
 
-    gl_FragColor = vec4(color, 1.0);
+    gl_FragColor = vec4(color, noise); // Directly use color and noise
   }
 `;
 
@@ -77,6 +70,9 @@ const HeroHeader: React.FC<{ className?: string }> = ({ className }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { isDarkMode } = useContext(DarkModeContext) || { isDarkMode: false };
+
+  console.log('Dark mode is', isDarkMode ? 'enabled' : 'disabled');
+
   const [mousePosition, setMousePosition] = useState<THREE.Vector2>(new THREE.Vector2(0.5, 0.5));
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -109,7 +105,7 @@ const HeroHeader: React.FC<{ className?: string }> = ({ className }) => {
           u_time: { value: 0 },
           u_resolution: { value: new THREE.Vector2() },
           u_pointer_position: { value: new THREE.Vector2(0.5, 0.5) },
-          u_scroll_progress: { value: 0 },
+          u_background_color: { value: new THREE.Color(isDarkMode ? 0x2F3537 : 0xFFFFFF) }, // Set initial background color
         },
       });
       materialRef.current = material;
@@ -180,11 +176,17 @@ const HeroHeader: React.FC<{ className?: string }> = ({ className }) => {
     }
   }, [mousePosition, isDarkMode]);
 
+  // Update the background color when dark mode changes
+  useEffect(() => {
+    if (materialRef.current) {
+      materialRef.current.uniforms.u_background_color.value.set(isDarkMode ? 0x2F3537 : 0xFFFFFF);
+    }
+  }, [isDarkMode]);
+
   return (
     <div
       ref={containerRef}
-      className={`${styles.heroHeader} ${isDarkMode ? styles.heroHeaderDark : styles.heroHeaderLight
-        } ${className || ''}`}
+      className={`${styles.heroHeader} ${className || ''}`}
     >
       <canvas ref={canvasRef} className={styles.heroCanvas} />
     </div>
