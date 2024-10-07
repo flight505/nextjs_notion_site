@@ -170,13 +170,13 @@ const HeroHeader: React.FC<{ className?: string }> = ({ className }) => {
   return (
     <div
       ref={containerRef}
-      className={`${styles.heroHeader} ${className || ''}`}
+      className={`notion-heroHeader ${className || ''}`}
     >
-      <div className={styles.heroText}>
-        <h1>Your Hero Header Text</h1>
-        <p>Some additional description or tagline can go here.</p>
+      <div className={`notion-heroText ${isDarkMode ? 'notion-darkText' : 'notion-lightText'}`}>
+        <h1>Vang's Vital Insights</h1>
+        <p>Personal Insights into Deep Learning: Navigating AI’s Role in Health Tech</p>
       </div>
-      <canvas ref={canvasRef} className={styles.heroCanvas} />
+      <canvas ref={canvasRef} className="notion-heroCanvas" />
     </div>
   );
 };
