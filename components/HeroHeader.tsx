@@ -105,7 +105,6 @@ const HeroHeader: React.FC<{ className?: string }> = ({ className }) => {
           u_time: { value: 0 },
           u_resolution: { value: new THREE.Vector2() },
           u_pointer_position: { value: new THREE.Vector2(0.5, 0.5) },
-          u_background_color: { value: new THREE.Color(isDarkMode ? 0x2F3537 : 0xFFFFFF) }, // Set initial background color
         },
       });
       materialRef.current = material;
@@ -138,14 +137,7 @@ const HeroHeader: React.FC<{ className?: string }> = ({ className }) => {
         ));
       };
 
-      const handleScroll = () => {
-        if (material) {
-          material.uniforms.u_scroll_progress.value = window.pageYOffset / (2 * window.innerHeight);
-        }
-      };
-
       containerRef.current.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('scroll', handleScroll);
 
       const animate = (time: number) => {
         if (!material || !renderer || !scene || !camera) {
@@ -167,7 +159,6 @@ const HeroHeader: React.FC<{ className?: string }> = ({ className }) => {
       return () => {
         window.removeEventListener('resize', resizeCanvas);
         containerRef.current?.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('scroll', handleScroll);
         cancelAnimationFrame(animationFrameId);
         renderer.dispose();
       };
@@ -176,18 +167,15 @@ const HeroHeader: React.FC<{ className?: string }> = ({ className }) => {
     }
   }, [mousePosition, isDarkMode]);
 
-  // Update the background color when dark mode changes
-  useEffect(() => {
-    if (materialRef.current) {
-      materialRef.current.uniforms.u_background_color.value.set(isDarkMode ? 0x2F3537 : 0xFFFFFF);
-    }
-  }, [isDarkMode]);
-
   return (
     <div
       ref={containerRef}
       className={`${styles.heroHeader} ${className || ''}`}
     >
+      <div className={styles.heroText}>
+        <h1>Your Hero Header Text</h1>
+        <p>Some additional description or tagline can go here.</p>
+      </div>
       <canvas ref={canvasRef} className={styles.heroCanvas} />
     </div>
   );
