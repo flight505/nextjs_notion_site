@@ -47,7 +47,7 @@ module.exports = withBundleAnalyzer({
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;"
   },
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     // Enable Webpack 5
     config.resolve.fallback = { fs: false, path: false, os: false };
 
