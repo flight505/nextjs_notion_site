@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState, useContext } from 'react';
 import * as THREE from 'three';
-import styles from './HeroHeader.module.css';
 import { DarkModeContext } from '@/lib/use-dark-mode';
 
 const vertexShader = `
@@ -26,7 +25,7 @@ const fragmentShader = `
   float neuro_shape(vec2 uv, float t, float p) {
     vec2 sine_acc = vec2(0.);
     vec2 res = vec2(0.);
-    float scale = 8.;
+    float scale = 8.5;
 
     for (int j = 0; j < 15; j++) {
       uv = rotate(uv, 1.);
@@ -34,7 +33,7 @@ const fragmentShader = `
       vec2 layer = uv * scale + float(j) + sine_acc - t;
       sine_acc += sin(layer);
       res += (.5 + .5 * cos(layer)) / scale;
-      scale *= (1.2 - .07 * p);
+      scale *= (1.2 - .06 * p);
     }
     return res.x + res.y;
   }
@@ -55,12 +54,16 @@ const fragmentShader = `
     float noise = neuro_shape(uv, t, p);
 
     noise = 1.2 * pow(noise, 3.);
-    noise += pow(noise, 10.);
+    noise += pow(noise, 10.0);
     noise = max(0.0, noise - 0.5);
     noise *= (1.0 - length(vUv - 0.5));
 
-    vec3 color = normalize(vec3(0.2, 0.5 + 0.4 * cos(3.0 * t), 0.5 + 0.5 * sin(3.0 * t)));
-    color *= noise;
+    vec3 color = normalize(vec3(
+      0.2, 
+      0.5 + 0.4 * cos(0.5 * t), // Reduced frequency for slower change
+      0.5 + 0.5 * sin(0.5 * t)  // Reduced frequency for slower change
+    ));    
+color *= noise;
 
     gl_FragColor = vec4(color, noise); // Directly use color and noise
   }
